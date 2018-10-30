@@ -1,0 +1,5 @@
+Flask>=0.10.1
+python-telegram-bot>=2.5
+webapp2
+google-cloud-datastore>=1.7.0
+pulp
