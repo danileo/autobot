@@ -17,15 +17,17 @@ from telegram.ext import Dispatcher, CommandHandler, MessageHandler, Filters
 # linear programming solver
 import pulp
 
-#additional local modules
+# additional local modules
 import mod_milano
 
+# verify if we are testing locally or not
+IS_DEV = (__name__ == '__main__')
 
 # start webpages handler
 app = Flask(__name__)
 
 # config init
-conifg=configparser.ConfigParser()
+config=configparser.ConfigParser()
 config.read('config.ini')
 TELEGRAM_TOKEN=config['DEFAULT']['telegram_token']
 HOOK_ADDRESS=config['DEFAULT']['hook_address']
@@ -37,9 +39,24 @@ global bot
 bot = telegram.Bot(token=TELEGRAM_TOKEN)
 global dispatcher
 dispatcher = Dispatcher(bot, None, workers=0)
+if IS_DEV:
+	class UpdateMock:
+		class Message:
+			chat_id = 0
+		message = Message()
+	def send_message_mock(chat_id, text, parse_mode=None, disable_web_page_preview=None, disable_notification=False,
+		reply_to_message_id=None, reply_markup=None, timeout=None, **kwargs):
+		print("RETURNED MESSAGE: "+text)
+	bot.send_message = send_message_mock
 
 # google datastore init
-dsclient=datastore.Client(DATASTORE_PROJECT)
+if IS_DEV:
+    import mock
+    import google.auth.credentials
+    credentials = mock.Mock(spec=google.auth.credentials.Credentials)
+    dsclient = datastore.Client(DATASTORE_PROJECT, credentials=credentials)
+else:
+    dsclient = datastore.Client(DATASTORE_PROJECT)
 
 
 ##########################
@@ -228,7 +245,7 @@ def bot_help(bot,update):
 	bot.send_message(chat_id=update.message.chat_id, text=txt)
 
 def milano(bot,update):
-	verbs = mod_milano.get_milano
+	verbs = mod_milano.get_milano()
 	verb=""
 	while verb=="":
 		verb=random.choice(verbs)
@@ -259,3 +276,6 @@ dispatcher.add_handler(CommandHandler("bicicletta", bicicletta))
 dispatcher.add_handler(CommandHandler("status", status))
 dispatcher.add_handler(CommandHandler("milano", milano))
 dispatcher.add_handler(CommandHandler("help", bot_help))
+
+if __name__ == '__main__':
+	print("The app is started in debug mode.")
