@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 
-# google cloud services
-import sys, os
+import sys
+import os
 sys.path.append(os.path.join(os.path.abspath('.'), 'env/lib/site-packages'))
-from flask import Flask, request
+
+# google cloud services
 from google.cloud import datastore
+from flask import Flask, request
 
 # python utility modules
 import configparser
-import random, math
+import random
+import math
 
 # telegram
 import telegram
@@ -17,7 +20,7 @@ from telegram.ext import Dispatcher, CommandHandler, MessageHandler, Filters
 # linear programming solver
 import pulp
 
-#additional local modules
+# additional local modules
 import mod_milano
 
 
@@ -25,12 +28,12 @@ import mod_milano
 app = Flask(__name__)
 
 # config init
-conifg=configparser.ConfigParser()
+config = configparser.ConfigParser()
 config.read('config.ini')
-TELEGRAM_TOKEN=config['DEFAULT']['telegram_token']
-HOOK_ADDRESS=config['DEFAULT']['hook_address']
-BOT_URL=config['DEFAULT']['bot_url']
-DATASTORE_PROJECT=config['DEFAULT']['datastore_project']
+TELEGRAM_TOKEN = config['DEFAULT']['telegram_token']
+HOOK_ADDRESS = config['DEFAULT']['hook_address']
+BOT_URL = config['DEFAULT']['bot_url']
+DATASTORE_PROJECT = config['DEFAULT']['datastore_project']
 
 # Telegram init
 global bot
@@ -39,14 +42,14 @@ global dispatcher
 dispatcher = Dispatcher(bot, None, workers=0)
 
 # google datastore init
-dsclient=datastore.Client(DATASTORE_PROJECT)
+dsclient = datastore.Client(DATASTORE_PROJECT)
 
 
 ##########################
-## DATASTORE OPERATIONS ##
+#  DATASTORE OPERATIONS  #
 ##########################
 
-def put_pref_ds(person_id,name,pref,num_seats=5):
+def put_pref_ds(person_id, name, pref, num_seats=5):
 	# The Cloud Datastore key for the new entity
 	rec_key = dsclient.key('Person', person_id)
 
@@ -59,70 +62,83 @@ def put_pref_ds(person_id,name,pref,num_seats=5):
 	# Saves the entity
 	dsclient.put(rec)
 
+
 def get_results():
-	query=dsclient.query(kind='Person')
-	query.add_filter('preference','=','CAR')
-	cars_list=list(query.fetch())
-	num_cars=len(cars_list)
-	cars_list_divided=[[] for i in range(0,10)]
+	query = dsclient.query(kind='Person')
+	query.add_filter('preference', '=', 'CAR')
+	cars_list = list(query.fetch())
+	num_cars = len(cars_list)
+	cars_list_divided = [[] for i in range(0, 10)]
 	for car in cars_list:
-		cars_list_divided[car['seats']-1].append(car)
-	num_cars_divided=[len(c) for c in cars_list_divided]
-	
-	query=dsclient.query(kind='Person')
-	query.add_filter('preference','=','LIFT')
-	lifts_list=list(query.fetch())
-	num_lifts=len(lifts_list)
-	
-	query=dsclient.query(kind='Person')
-	query.add_filter('preference','=','POSSIBLY_LIFT')
-	poss_lifts_list=list(query.fetch())
-	num_poss_lifts=len(poss_lifts_list)
-	
-	available_seats=sum([(i+1)*n for i,n in enumerate(num_cars_divided)])
-	
-	if(available_seats<num_cars+num_lifts):
-		missing_seats=num_cars+num_lifts-available_seats
-		if(missing_seats>1):
-			msg="Non ci sono abbastanza auto: rimangono "+str(missing_seats)+" persone a piedi."
+		cars_list_divided[car['seats'] - 1].append(car)
+	num_cars_divided = [len(c) for c in cars_list_divided]
+
+	query = dsclient.query(kind='Person')
+	query.add_filter('preference', '=', 'LIFT')
+	lifts_list = list(query.fetch())
+	num_lifts = len(lifts_list)
+
+	query = dsclient.query(kind='Person')
+	query.add_filter('preference', '=', 'POSSIBLY_LIFT')
+	poss_lifts_list = list(query.fetch())
+	num_poss_lifts = len(poss_lifts_list)
+
+	available_seats = sum(
+		[(i + 1) * n for i, n in enumerate(num_cars_divided)])
+
+	if(available_seats < num_cars + num_lifts):
+		missing_seats = num_cars + num_lifts - available_seats
+		if(missing_seats > 1):
+			msg = "Non ci sono abbastanza auto: rimangono " + \
+				str(missing_seats) + " persone a piedi."
 		else:
-			msg="Non ci sono abbastanza auto: rimane una persona a piedi."
+			msg = "Non ci sono abbastanza auto: rimane una persona a piedi."
 		return msg
-	
-	elif(available_seats<=num_cars+num_lifts+num_poss_lifts):
-		num_seats_left=available_seats-num_cars-num_lifts
-		
-		if(num_seats_left>=num_poss_lifts):
-			people_poss_lifts=poss_lifts_list
+
+	elif(available_seats <= num_cars + num_lifts + num_poss_lifts):
+		num_seats_left = available_seats - num_cars - num_lifts
+
+		if(num_seats_left >= num_poss_lifts):
+			people_poss_lifts = poss_lifts_list
 		else:
-			people_poss_lifts=random.sample(poss_lifts_list,num_seats_left)
-		
-		msg="Auto necessarie: "+(", ".join([u['name'] for u in cars_list]))+"."
-		if(len(people_poss_lifts)>0):
-			msg+="\nCiclisti che hanno il posto in auto: "+(", ".join([u['name'] for u in people_poss_lifts]))+"."
+			people_poss_lifts = random.sample(poss_lifts_list, num_seats_left)
+
+		msg = "Auto necessarie: " + \
+			(", ".join([u['name'] for u in cars_list])) + "."
+		if(len(people_poss_lifts) > 0):
+			msg += "\nCiclisti che hanno il posto in auto: " + \
+				(", ".join([u['name'] for u in people_poss_lifts])) + "."
 		return msg
-	
+
 	else:
-		prob=pulp.LpProblem("",pulp.LpMinimize)
-		xvars=[]
-		for k in range(1,11):
-			xvars.append(pulp.LpVariable(chr(ord('a')+k),0,num_cars_divided[k-1],pulp.LpInteger))
-		prob += xvars[0]+xvars[1]+xvars[2]+xvars[3]+xvars[4]+xvars[5]+xvars[6]+xvars[7]+xvars[8]+xvars[9]
-		prob += 1*xvars[0]+2*xvars[1]+3*xvars[2]+4*xvars[3]+5*xvars[4]+6*xvars[5]+7*xvars[6]+8*xvars[7]+9*xvars[8]+10*xvars[9] >= num_cars+num_lifts+num_poss_lifts
+		prob = pulp.LpProblem("", pulp.LpMinimize)
+		xvars = []
+		for k in range(1, 11):
+			xvars.append(
+				pulp.LpVariable(chr(ord('a') + k), 0,
+								num_cars_divided[k - 1], pulp.LpInteger))
+		prob += xvars[0] + xvars[1] + xvars[2] + xvars[3] + xvars[4] + \
+			xvars[5] + xvars[6] + xvars[7] + xvars[8] + xvars[9]
+		prob += 1 * xvars[0] + 2 * xvars[1] + 3 * xvars[2] +\
+			4 * xvars[3] + 5 * xvars[4] + 6 * xvars[5] + \
+			7 * xvars[6] + 8 * xvars[7] + 9 * xvars[8] + 10 * \
+			xvars[9] >= num_cars + num_lifts + num_poss_lifts
 		prob.solve()
-		num_cars_needed=[ round(v.varValue) for v in prob.variables() ]
-		
-		chosen_cars=[]
-		for i in range(0,len(num_cars_needed)):
-			chosen_cars.extend(random.sample(cars_list_divided[i],num_cars_needed[i]))
-		
-		msg="Auto necessarie: "+(", ".join([u['name'] for u in chosen_cars]))+"."
-		msg+="\nTutti hanno il posto in auto."
+		num_cars_needed = [round(v.varValue) for v in prob.variables()]
+
+		chosen_cars = []
+		for i in range(0, len(num_cars_needed)):
+			chosen_cars.extend(random.sample(
+				cars_list_divided[i], num_cars_needed[i]))
+
+		msg = "Auto necessarie: " + \
+			(", ".join([u['name'] for u in chosen_cars])) + "."
+		msg += "\nTutti hanno il posto in auto."
 		return msg
 
 
 #############################
-## CALLBACKS FOR WEBSERVER ##
+#  CALLBACKS FOR WEBSERVER  #
 #############################
 
 @app.route(HOOK_ADDRESS, methods=['POST'])
@@ -136,7 +152,7 @@ def webhook_handler():
 
 @app.route('/set_webhook', methods=['GET', 'POST'])
 def set_webhook():
-	s = bot.setWebhook(BOT_URL+HOOK_ADDRESS)
+	s = bot.setWebhook(BOT_URL + HOOK_ADDRESS)
 	if s:
 		return "webhook setup ok"
 	else:
@@ -145,102 +161,112 @@ def set_webhook():
 
 @app.route('/')
 def index():
-	return '.' 
+	return '.'
 
 
 ###############################
-## TELEGRAM COMMAND HANDLERS ##
+#  TELEGRAM COMMAND HANDLERS  #
 ###############################
 
-def start(bot,update):
-	bot.send_message(chat_id=update.message.chat_id, text="I'm a bot, please talk to me!")
+def start(bot, update):
+	bot.send_message(chat_id=update.message.chat_id,
+					 text="I'm a bot, please talk to me!")
 
-def sollecita(bot,update):
-	sentences=["<NAME>, VUOI CHE MUORO!? (di fame)",
-			"Tic toc, <NAME>, TIC TOC!",
-			"<NAME>, das war ein Befehl! Die Abfahrt war ein Befehl! Wer sind Sie, dass Sie es wagen, sich meinen Befehlen zu widersetzen? So weit ist es also gekommen...",
-			"Te dò un sciafon che te impituro sù pel muro. Che ore sono, <NAME>!?",
-			"You have the timeliness of a seasick crocodile, <NAME>. Now, given the choice between the two of you, I'd take the seasick crocodile!",
-			"Gentile <NAME>, MUOVI QUEL CULO! Un abbraccio."]
-	sentence=random.choice(sentences)
-	origmsg=update.message.text.strip()
-	if(origmsg.find(" ")>0):
-		msg=origmsg[origmsg.find(" ")+1:]
-		msg=msg.strip()
-		sentence=sentence.replace("<NAME>",msg)
+
+def sollecita(bot, update):
+	sentences = ["<NAME>, VUOI CHE MUORO!? (di fame)",
+				 "Tic toc, <NAME>, TIC TOC!",
+				 "<NAME>, das war ein Befehl! Die Abfahrt war ein Befehl! Wer sind Sie, dass Sie es wagen, sich meinen Befehlen zu widersetzen? So weit ist es also gekommen...",
+				 "Te dò un sciafon che te impituro sù pel muro. Che ore sono, <NAME>!?",
+				 "You have the timeliness of a seasick crocodile, <NAME>. Now, given the choice between the two of you, I'd take the seasick crocodile!",
+				 "Gentile <NAME>, MUOVI QUEL CULO! Un abbraccio."]
+	sentence = random.choice(sentences)
+	origmsg = update.message.text.strip()
+	if(origmsg.find(" ") > 0):
+		msg = origmsg[origmsg.find(" ") + 1:]
+		msg = msg.strip()
+		sentence = sentence.replace("<NAME>", msg)
 		bot.send_message(chat_id=update.message.chat_id, text=sentence)
 
+
 def get_name(user):
-	user_name=user.first_name
+	user_name = user.first_name
 	if user.last_name is not None:
-		user_name+=" "+user.last_name
+		user_name += " " + user.last_name
 	elif user.username is not None:
-		user_name+=" "+user.username
+		user_name += " " + user.username
 	return user_name
 
-def macchina(bot,update):
-	user=update.message.from_user
-	user_name=get_name(user)
-	
-	origmsg=update.message.text.strip()
-	if(origmsg.find(" ")>0):
-		num_seats=int(origmsg[origmsg.find(" ")+1:])
+
+def macchina(bot, update):
+	user = update.message.from_user
+	user_name = get_name(user)
+
+	origmsg = update.message.text.strip()
+	if(origmsg.find(" ") > 0):
+		num_seats = int(origmsg[origmsg.find(" ") + 1:])
 	else:
-		num_seats=5
-	
-	put_pref_ds(user.id,user_name,"CAR",num_seats=num_seats)
-	msg=(user_name+" ha la macchina.")
+		num_seats = 5
+
+	put_pref_ds(user.id, user_name, "CAR", num_seats=num_seats)
+	msg = (user_name + " ha la macchina.")
 	bot.send_message(chat_id=update.message.chat_id, text=msg)
 
-def posto(bot,update):
-	user=update.message.from_user
-	user_name=get_name(user)
-	
-	put_pref_ds(user.id,user_name,"LIFT")
-	msg=("A "+user_name+" serve un passaggio.")
+
+def posto(bot, update):
+	user = update.message.from_user
+	user_name = get_name(user)
+
+	put_pref_ds(user.id, user_name, "LIFT")
+	msg = ("A " + user_name + " serve un passaggio.")
 	bot.send_message(chat_id=update.message.chat_id, text=msg)
 
-def pref_posto(bot,update):
-	user=update.message.from_user
-	user_name=get_name(user)
-	
-	put_pref_ds(user.id,user_name,"POSSIBLY_LIFT")
-	msg=(user_name+" preferisce avere un passaggio.")
+
+def pref_posto(bot, update):
+	user = update.message.from_user
+	user_name = get_name(user)
+
+	put_pref_ds(user.id, user_name, "POSSIBLY_LIFT")
+	msg = (user_name + " preferisce avere un passaggio.")
 	bot.send_message(chat_id=update.message.chat_id, text=msg)
 
-def bicicletta(bot,update):
-	user=update.message.from_user
-	user_name=get_name(user)
-	
-	put_pref_ds(user.id,user_name,"BIKE")
-	msg=(user_name+" va in bicicletta.")
+
+def bicicletta(bot, update):
+	user = update.message.from_user
+	user_name = get_name(user)
+
+	put_pref_ds(user.id, user_name, "BIKE")
+	msg = (user_name + " va in bicicletta.")
 	bot.send_message(chat_id=update.message.chat_id, text=msg)
 
-def status(bot,update):
+
+def status(bot, update):
 	bot.send_message(chat_id=update.message.chat_id, text=get_results())
 
-def bot_help(bot,update):
-	txt="/auto o /macchina per indicare che si ha l'auto.\n"
-	txt+="/posto per prenotare un posto.\n"
-	txt+="/biciomacchina (o qualsiasi delle quattro combinazioni tra bici e (auto OR macchina) intervallate dalla lettera \"o\") per indicare che si preferirebbe un passaggio in auto ma si ha la bicicletta.\n"
-	txt+="/bici per indicare che si va in bicicletta."
-	
+
+def bot_help(bot, update):
+	txt = "/auto o /macchina per indicare che si ha l'auto.\n"
+	txt += "/posto per prenotare un posto.\n"
+	txt += "/biciomacchina (o qualsiasi delle quattro combinazioni tra bici e (auto OR macchina) intervallate dalla lettera \"o\") per indicare che si preferirebbe un passaggio in auto ma si ha la bicicletta.\n"
+	txt += "/bici per indicare che si va in bicicletta."
+
 	bot.send_message(chat_id=update.message.chat_id, text=txt)
 
-def milano(bot,update):
+
+def milano(bot, update):
 	verbs = mod_milano.get_milano
-	verb=""
-	while verb=="":
-		verb=random.choice(verbs)
-		if(verb[-3:]=="ere"):
-			verb=verb[:-3]+"i"
-		elif(verb[-3:]=="ire"):
-			verb=verb[:-2]+"sci"
-		elif(verb[-3:]=="are"):
-			verb=verb[:-2]
+	verb = ""
+	while verb == "":
+		verb = random.choice(verbs)
+		if(verb[-3:] == "ere"):
+			verb = verb[:-3] + "i"
+		elif(verb[-3:] == "ire"):
+			verb = verb[:-2] + "sci"
+		elif(verb[-3:] == "are"):
+			verb = verb[:-2]
 		else:
-			verb=""
-	msg=verb+"milano"
+			verb = ""
+	msg = verb + "milano"
 	bot.send_message(chat_id=update.message.chat_id, text=msg)
 
 
