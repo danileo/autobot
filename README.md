@@ -10,12 +10,12 @@ The following instructions are for Linux machines, they must be modified accordi
 1. Activate the new environment: `source env/bin/activate`
 1. Install the runtime dependencies: `pip install -r requirements.txt`
 1. Create a config.ini file with the configuration. If you do not plan to deploy the app, you can use placeholder values:
-
+```
     [DEFAULT]
     telegram_token = 000000000:0
     hook_address = /
     bot_url = 
-
+```
 
 ### Starting of a local testing session
 1. Run the datastore emulator: `gcloud beta emulators datastore start --no-store-on-disk` (omit the `--no-store-on-disk` part if you want the datastore content to persist across the emulator restarts)
