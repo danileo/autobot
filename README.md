@@ -9,9 +9,16 @@ The following instructions are for Linux machines, they must be modified accordi
 1. From the shell, while inside the project directory, create a new Python virtual environment: `virtualenv --python python3 env`. The following commands must be executed from the same shell without changing location.
 1. Activate the new environment: `source env/bin/activate`
 1. Install the runtime dependencies: `pip install -r requirements.txt`
+1. Create a config.ini file with the configuration. If you do not plan to deploy the app, you can use placeholder values:
+
+    [DEFAULT]
+    telegram_token = 000000000:0
+    hook_address = /
+    bot_url = 
+
 
 ### Starting of a local testing session
-1. Run the datastore emulator: `gcloud beta emulators datastore start --no-store-on-disk --project dei-projects` (omit the `--no-store-on-disk` part if you want the datastore content to persist across the emulator restarts)
+1. Run the datastore emulator: `gcloud beta emulators datastore start --no-store-on-disk` (omit the `--no-store-on-disk` part if you want the datastore content to persist across the emulator restarts)
 1. In another shell, initialize the needed environment variables: `$(gcloud beta emulators datastore env-init)`. The following commands must be executed inside the shell where this command has been executed.
 1. Activate the Python virtual environment: `source env/bin/activate`
 1. If new dependencies are needed, install them: `pip install -r requirements.txt`
