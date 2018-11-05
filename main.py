@@ -65,6 +65,10 @@ else:
 ##########################
 
 def put_pref_ds(chat_id, person_id, name, pref, num_seats=5):
+	anc_key = dsclient.key('Chat', chat_id)
+	anc = datastore.Entity(key=anc_key)
+	dsclient.put(anc)
+
 	# The Cloud Datastore key for the new entity
 	rec_key = dsclient.key('Chat', chat_id, 'Person', person_id)
 
@@ -89,12 +93,12 @@ def get_results(chat_id):
 		cars_list_divided[car['seats'] - 1].append(car)
 	num_cars_divided = [len(c) for c in cars_list_divided]
 
-	query = dsclient.query(kind='Person')
+	query = dsclient.query(kind='Person', ancestor=ancestor)
 	query.add_filter('preference', '=', 'LIFT')
 	lifts_list = list(query.fetch())
 	num_lifts = len(lifts_list)
 
-	query = dsclient.query(kind='Person')
+	query = dsclient.query(kind='Person', ancestor=ancestor)
 	query.add_filter('preference', '=', 'POSSIBLY_LIFT')
 	poss_lifts_list = list(query.fetch())
 	num_poss_lifts = len(poss_lifts_list)
@@ -227,7 +231,7 @@ def macchina(bot, update):
 
 	put_pref_ds(chat_id, user.id, user_name, "CAR", num_seats=num_seats)
 	msg = (user_name + " ha la macchina.")
-	bot.send_message(chat_id=update.message.chat_id, text=msg)
+	bot.send_message(chat_id=chat_id, text=msg)
 
 
 def posto(bot, update):
@@ -237,7 +241,7 @@ def posto(bot, update):
 
 	put_pref_ds(chat_id, user.id, user_name, "LIFT")
 	msg = ("A " + user_name + " serve un passaggio.")
-	bot.send_message(chat_id=update.message.chat_id, text=msg)
+	bot.send_message(chat_id=chat_id, text=msg)
 
 
 def pref_posto(bot, update):
@@ -247,7 +251,7 @@ def pref_posto(bot, update):
 
 	put_pref_ds(chat_id, user.id, user_name, "POSSIBLY_LIFT")
 	msg = (user_name + " preferisce avere un passaggio.")
-	bot.send_message(chat_id=update.message.chat_id, text=msg)
+	bot.send_message(chat_id=chat_id, text=msg)
 
 
 def bicicletta(bot, update):
@@ -257,7 +261,7 @@ def bicicletta(bot, update):
 
 	put_pref_ds(chat_id, user.id, user_name, "BIKE")
 	msg = (user_name + " va in bicicletta.")
-	bot.send_message(chat_id=update.message.chat_id, text=msg)
+	bot.send_message(chat_id=chat_id, text=msg)
 
 
 def status(bot, update):
