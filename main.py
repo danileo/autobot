@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# python utility modules
+import configparser
+import random
+
 import sys
 import os
 sys.path.append(os.path.join(os.path.abspath('.'), 'env/lib/site-packages'))
@@ -8,14 +12,9 @@ sys.path.append(os.path.join(os.path.abspath('.'), 'env/lib/site-packages'))
 from google.cloud import datastore
 from flask import Flask, request
 
-# python utility modules
-import configparser
-import random
-import math
-
 # telegram
 import telegram
-from telegram.ext import Dispatcher, CommandHandler, MessageHandler, Filters
+from telegram.ext import Dispatcher, CommandHandler
 
 # linear programming solver
 import pulp
@@ -35,7 +34,6 @@ config.read('config.ini')
 TELEGRAM_TOKEN = config['DEFAULT']['telegram_token']
 HOOK_ADDRESS = config['DEFAULT']['hook_address']
 BOT_URL = config['DEFAULT']['bot_url']
-DATASTORE_PROJECT = config['DEFAULT']['datastore_project']
 
 # Telegram init
 global bot
@@ -57,18 +55,18 @@ if IS_DEV:
     import mock
     import google.auth.credentials
     credentials = mock.Mock(spec=google.auth.credentials.Credentials)
-    dsclient = datastore.Client(DATASTORE_PROJECT, credentials=credentials)
+    dsclient = datastore.Client(credentials=credentials)
 else:
-    dsclient = datastore.Client(DATASTORE_PROJECT)
+    dsclient = datastore.Client()
 
 
 ##########################
 #  DATASTORE OPERATIONS  #
 ##########################
 
-def put_pref_ds(person_id, name, pref, num_seats=5):
+def put_pref_ds(chat_id, person_id, name, pref, num_seats=5):
 	# The Cloud Datastore key for the new entity
-	rec_key = dsclient.key('Person', person_id)
+	rec_key = dsclient.key('Chat', chat_id, 'Person', person_id)
 
 	# Prepares the new entity
 	rec = datastore.Entity(key=rec_key)
@@ -80,8 +78,9 @@ def put_pref_ds(person_id, name, pref, num_seats=5):
 	dsclient.put(rec)
 
 
-def get_results():
-	query = dsclient.query(kind='Person')
+def get_results(chat_id):
+	ancestor = dsclient.key('Chat', chat_id)
+	query = dsclient.query(kind='Person', ancestor=ancestor)
 	query.add_filter('preference', '=', 'CAR')
 	cars_list = list(query.fetch())
 	num_cars = len(cars_list)
@@ -103,26 +102,26 @@ def get_results():
 	available_seats = sum(
 		[(i + 1) * n for i, n in enumerate(num_cars_divided)])
 
-	if(available_seats < num_cars + num_lifts):
+	if available_seats < num_cars + num_lifts:
 		missing_seats = num_cars + num_lifts - available_seats
-		if(missing_seats > 1):
+		if missing_seats > 1:
 			msg = "Non ci sono abbastanza auto: rimangono " + \
 				str(missing_seats) + " persone a piedi."
 		else:
 			msg = "Non ci sono abbastanza auto: rimane una persona a piedi."
 		return msg
 
-	elif(available_seats <= num_cars + num_lifts + num_poss_lifts):
+	elif available_seats <= num_cars + num_lifts + num_poss_lifts:
 		num_seats_left = available_seats - num_cars - num_lifts
 
-		if(num_seats_left >= num_poss_lifts):
+		if num_seats_left >= num_poss_lifts:
 			people_poss_lifts = poss_lifts_list
 		else:
 			people_poss_lifts = random.sample(poss_lifts_list, num_seats_left)
 
 		msg = "Auto necessarie: " + \
 			(", ".join([u['name'] for u in cars_list])) + "."
-		if(len(people_poss_lifts) > 0):
+		if people_poss_lifts:
 			msg += "\nCiclisti che hanno il posto in auto: " + \
 				(", ".join([u['name'] for u in people_poss_lifts])) + "."
 		return msg
@@ -152,6 +151,15 @@ def get_results():
 			(", ".join([u['name'] for u in chosen_cars])) + "."
 		msg += "\nTutti hanno il posto in auto."
 		return msg
+
+
+def get_name(user):
+	user_name = user.first_name
+	if user.last_name is not None:
+		user_name += " " + user.last_name
+	elif user.username is not None:
+		user_name += " " + user.username
+	return user_name
 
 
 #############################
@@ -199,33 +207,25 @@ def sollecita(bot, update):
 				 "Gentile <NAME>, MUOVI QUEL CULO! Un abbraccio."]
 	sentence = random.choice(sentences)
 	origmsg = update.message.text.strip()
-	if(origmsg.find(" ") > 0):
+	if origmsg.find(" ") > 0:
 		msg = origmsg[origmsg.find(" ") + 1:]
 		msg = msg.strip()
 		sentence = sentence.replace("<NAME>", msg)
 		bot.send_message(chat_id=update.message.chat_id, text=sentence)
 
 
-def get_name(user):
-	user_name = user.first_name
-	if user.last_name is not None:
-		user_name += " " + user.last_name
-	elif user.username is not None:
-		user_name += " " + user.username
-	return user_name
-
-
 def macchina(bot, update):
 	user = update.message.from_user
 	user_name = get_name(user)
+	chat_id = update.message.chat_id
 
 	origmsg = update.message.text.strip()
-	if(origmsg.find(" ") > 0):
+	if origmsg.find(" ") > 0:
 		num_seats = int(origmsg[origmsg.find(" ") + 1:])
 	else:
 		num_seats = 5
 
-	put_pref_ds(user.id, user_name, "CAR", num_seats=num_seats)
+	put_pref_ds(chat_id, user.id, user_name, "CAR", num_seats=num_seats)
 	msg = (user_name + " ha la macchina.")
 	bot.send_message(chat_id=update.message.chat_id, text=msg)
 
@@ -233,8 +233,9 @@ def macchina(bot, update):
 def posto(bot, update):
 	user = update.message.from_user
 	user_name = get_name(user)
+	chat_id = update.message.chat_id
 
-	put_pref_ds(user.id, user_name, "LIFT")
+	put_pref_ds(chat_id, user.id, user_name, "LIFT")
 	msg = ("A " + user_name + " serve un passaggio.")
 	bot.send_message(chat_id=update.message.chat_id, text=msg)
 
@@ -242,8 +243,9 @@ def posto(bot, update):
 def pref_posto(bot, update):
 	user = update.message.from_user
 	user_name = get_name(user)
+	chat_id = update.message.chat_id
 
-	put_pref_ds(user.id, user_name, "POSSIBLY_LIFT")
+	put_pref_ds(chat_id, user.id, user_name, "POSSIBLY_LIFT")
 	msg = (user_name + " preferisce avere un passaggio.")
 	bot.send_message(chat_id=update.message.chat_id, text=msg)
 
@@ -251,14 +253,16 @@ def pref_posto(bot, update):
 def bicicletta(bot, update):
 	user = update.message.from_user
 	user_name = get_name(user)
+	chat_id = update.message.chat_id
 
-	put_pref_ds(user.id, user_name, "BIKE")
+	put_pref_ds(chat_id, user.id, user_name, "BIKE")
 	msg = (user_name + " va in bicicletta.")
 	bot.send_message(chat_id=update.message.chat_id, text=msg)
 
 
 def status(bot, update):
-	bot.send_message(chat_id=update.message.chat_id, text=get_results())
+	chat_id = update.message.chat_id
+	bot.send_message(chat_id=chat_id, text=get_results(chat_id))
 
 
 def bot_help(bot, update):
@@ -275,11 +279,11 @@ def milano(bot, update):
 	verb = ""
 	while verb == "":
 		verb = random.choice(verbs)
-		if(verb[-3:] == "ere"):
+		if verb[-3:] == "ere":
 			verb = verb[:-3] + "i"
-		elif(verb[-3:] == "ire"):
+		elif verb[-3:] == "ire":
 			verb = verb[:-2] + "sci"
-		elif(verb[-3:] == "are"):
+		elif verb[-3:] == "are":
 			verb = verb[:-2]
 		else:
 			verb = ""
