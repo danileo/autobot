@@ -43,21 +43,31 @@ dispatcher = Dispatcher(bot, None, workers=0)
 if IS_DEV:
 	class UpdateMock:
 		class Message:
-			chat_id = 0
+			chat_id = 1
+
+			class FromUser:
+				first_name = ""
+				last_name = ""
+				id = 1
+			from_user = FromUser()
+			text = ""
 		message = Message()
-	def send_message_mock(chat_id, text, parse_mode=None, disable_web_page_preview=None, disable_notification=False,
+
+	def send_message_mock(
+		chat_id, text, parse_mode=None,
+		disable_web_page_preview=None, disable_notification=False,
 		reply_to_message_id=None, reply_markup=None, timeout=None, **kwargs):
-		print("RETURNED MESSAGE: "+text)
+			print("RETURNED MESSAGE: " + text)
 	bot.send_message = send_message_mock
 
 # google datastore init
 if IS_DEV:
-    import mock
-    import google.auth.credentials
-    credentials = mock.Mock(spec=google.auth.credentials.Credentials)
-    dsclient = datastore.Client(credentials=credentials)
+	import mock
+	import google.auth.credentials
+	credentials = mock.Mock(spec=google.auth.credentials.Credentials)
+	dsclient = datastore.Client(credentials=credentials)
 else:
-    dsclient = datastore.Client()
+	dsclient = datastore.Client()
 
 
 ##########################
@@ -327,6 +337,16 @@ dispatcher.add_handler(CommandHandler("bicicletta", bicicletta))
 dispatcher.add_handler(CommandHandler("status", status))
 dispatcher.add_handler(CommandHandler("milano", milano))
 dispatcher.add_handler(CommandHandler("help", bot_help))
+dispatcher.add_handler(CommandHandler("guest", postoguest))
 
 if __name__ == '__main__':
 	print("The app is started in debug mode.")
+	# update = UpdateMock()
+	# start(bot, update)
+	# update.message.from_user.first_name = "hola"
+	# update.message.from_user.last_name = "macchina"
+	# update.message.text = "/auto 3"
+	# macchina(bot, update)
+	# update.message.text = "/postoguest tizio"
+	# postoguest(bot, update)
+	# status(bot, update)
