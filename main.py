@@ -244,6 +244,23 @@ def posto(bot, update):
 	bot.send_message(chat_id=chat_id, text=msg)
 
 
+def postoguest(bot, update):
+	chat_id = update.message.chat_id
+	# get the message and check if there is a name
+	origmsg = update.message.text.strip()
+	if origmsg.find(" ") > 0:
+		msg = origmsg[origmsg.find(" ") + 1:]
+		msg = msg.strip()
+		user_name = msg
+		print(user_name)
+		put_pref_ds(chat_id, user_name, user_name, "LIFT")
+		replyMsg = ("A " + user_name + " serve un passaggio.")
+		bot.send_message(chat_id=chat_id, text=replyMsg)
+	else:
+		replyMsg = "Mi serve il nome dell'ospite"
+		bot.send_message(chat_id=chat_id, text=replyMsg)
+
+
 def pref_posto(bot, update):
 	user = update.message.from_user
 	user_name = get_name(user)
