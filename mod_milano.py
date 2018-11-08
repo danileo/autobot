@@ -4432,6 +4432,7 @@ def get_milano():
 	"volere",
 	"volgere",
 	"vomere",
+	"voppiare",
 	"zampillare",
 	"zigzagare",
 	"zirlare",
