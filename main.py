@@ -322,6 +322,17 @@ def milano(bot, update):
 	msg = verb + "milano"
 	bot.send_message(chat_id=update.message.chat_id, text=msg)
 
+def murialdo(bot, update):
+	insults = ["Quando Dio diede l'intelligenza all'umanità tu dov'eri? Al cesso!?",
+	           "Sei cosi brutto che chi ti guarda vomita.",
+	           "Sei cosi ignorante che pure i tuoi amici ti stanno lontano.",
+	           "No.",
+	           "Non capisco se sei cretino di tuo oppure hai studiato per esserlo.",
+	           "Your are not allowed to do that. This incident will be reported.",
+	           "Hold it up to the light --- not a brain in sight!"]
+	
+	msg = random.choice(insults)
+	bot.send_message(chat_id=update.message.chat_id, text=msg)
 
 # Hook commands to command handlers
 dispatcher.add_handler(CommandHandler("start", start))
@@ -339,6 +350,7 @@ dispatcher.add_handler(CommandHandler("status", status))
 dispatcher.add_handler(CommandHandler("milano", milano))
 dispatcher.add_handler(CommandHandler("help", bot_help))
 dispatcher.add_handler(CommandHandler("guest", postoguest))
+dispatcher.add_handler(CommandHandler("murialdo", murialdo))
 
 if __name__ == '__main__':
 	print("The app is started in debug mode.")
