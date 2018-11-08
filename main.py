@@ -301,6 +301,7 @@ def bot_help(bot, update):
 	txt += "/posto per prenotare un posto.\n"
 	txt += "/biciomacchina (o qualsiasi delle quattro combinazioni tra bici e (auto OR macchina) intervallate dalla lettera \"o\") per indicare che si preferirebbe un passaggio in auto ma si ha la bicicletta.\n"
 	txt += "/bici per indicare che si va in bicicletta."
+	txt += "/guest NomeGuest per aggiungere un ospite che vuole andare in macchina"
 
 	bot.send_message(chat_id=update.message.chat_id, text=txt)
 
