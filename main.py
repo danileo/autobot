@@ -176,6 +176,15 @@ def get_name(user):
 	return user_name
 
 
+def delete_records(chat_id):
+	ancestor = dsclient.key('Chat', chat_id)
+	query = dsclient.query(kind='Person', ancestor=ancestor)
+	query.keys_only()
+	records = query.fetch()
+	keys=[r.key for r in records]
+	dsclient.delete_multi(keys)
+
+
 #############################
 #  CALLBACKS FOR WEBSERVER  #
 #############################
@@ -296,6 +305,12 @@ def status(bot, update):
 	bot.send_message(chat_id=chat_id, text=get_results(chat_id))
 
 
+def reset(bot, update):
+	chat_id = update.message.chat_id
+	delete_records(chat_id)
+	bot.send_message(chat_id=chat_id, text="Preferenze cancellate!")
+
+
 def bot_help(bot, update):
 	txt = "/auto o /macchina per indicare che si ha l'auto.\n"
 	txt += "/posto per prenotare un posto.\n"
@@ -351,6 +366,7 @@ dispatcher.add_handler(CommandHandler("milano", milano))
 dispatcher.add_handler(CommandHandler("help", bot_help))
 dispatcher.add_handler(CommandHandler("guest", postoguest))
 dispatcher.add_handler(CommandHandler("murialdo", murialdo))
+dispatcher.add_handler(CommandHandler("reset", reset))
 
 if __name__ == '__main__':
 	print("The app is started in debug mode.")
