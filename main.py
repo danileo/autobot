@@ -10,6 +10,7 @@ sys.path.append(os.path.join(os.path.abspath('.'), 'env/lib/site-packages'))
 
 # google cloud services
 from google.cloud import datastore
+import google.auth.exceptions
 from flask import Flask, request
 
 # telegram
@@ -22,9 +23,6 @@ import pulp
 # additional local modules
 import mod_milano
 
-# verify if we are testing locally or not
-IS_DEV = (__name__ == '__main__')
-
 # start webpages handler
 app = Flask(__name__)
 
@@ -36,38 +34,14 @@ HOOK_ADDRESS = config['DEFAULT']['hook_address']
 BOT_URL = config['DEFAULT']['bot_url']
 
 # Telegram init
-global bot
 bot = telegram.Bot(token=TELEGRAM_TOKEN)
-global dispatcher
 dispatcher = Dispatcher(bot, None, workers=0)
-if IS_DEV:
-	class UpdateMock:
-		class Message:
-			chat_id = 1
-
-			class FromUser:
-				first_name = ""
-				last_name = ""
-				id = 1
-			from_user = FromUser()
-			text = ""
-		message = Message()
-
-	def send_message_mock(
-		chat_id, text, parse_mode=None,
-		disable_web_page_preview=None, disable_notification=False,
-		reply_to_message_id=None, reply_markup=None, timeout=None, **kwargs):
-			print("RETURNED MESSAGE: " + text)
-	bot.send_message = send_message_mock
 
 # google datastore init
-if IS_DEV:
-	import mock
-	import google.auth.credentials
-	credentials = mock.Mock(spec=google.auth.credentials.Credentials)
-	dsclient = datastore.Client(credentials=credentials)
-else:
+try:
 	dsclient = datastore.Client()
+except google.auth.exceptions.DefaultCredentialsError as exc:
+	pass
 
 
 ##########################
@@ -181,7 +155,7 @@ def delete_records(chat_id):
 	query = dsclient.query(kind='Person', ancestor=ancestor)
 	query.keys_only()
 	records = query.fetch()
-	keys=[r.key for r in records]
+	keys = [r.key for r in records]
 	dsclient.delete_multi(keys)
 
 
@@ -271,7 +245,6 @@ def postoguest(bot, update):
 		msg = origmsg[origmsg.find(" ") + 1:]
 		msg = msg.strip()
 		user_name = msg
-		print(user_name)
 		put_pref_ds(chat_id, user_name, user_name, "LIFT")
 		replyMsg = ("A " + user_name + " serve un passaggio.")
 		bot.send_message(chat_id=chat_id, text=replyMsg)
@@ -345,7 +318,7 @@ def murialdo(bot, update):
 	           "Non capisco se sei cretino di tuo oppure hai studiato per esserlo.",
 	           "Your are not allowed to do that. This incident will be reported.",
 	           "Hold it up to the light --- not a brain in sight!"]
-	
+
 	msg = random.choice(insults)
 	bot.send_message(chat_id=update.message.chat_id, text=msg)
 
@@ -367,15 +340,3 @@ dispatcher.add_handler(CommandHandler("help", bot_help))
 dispatcher.add_handler(CommandHandler("guest", postoguest))
 dispatcher.add_handler(CommandHandler("murialdo", murialdo))
 dispatcher.add_handler(CommandHandler("reset", reset))
-
-if __name__ == '__main__':
-	print("The app is started in debug mode.")
-	# update = UpdateMock()
-	# start(bot, update)
-	# update.message.from_user.first_name = "hola"
-	# update.message.from_user.last_name = "macchina"
-	# update.message.text = "/auto 3"
-	# macchina(bot, update)
-	# update.message.text = "/postoguest tizio"
-	# postoguest(bot, update)
-	# status(bot, update)
