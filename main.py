@@ -15,7 +15,8 @@ from flask import Flask, request
 
 # telegram
 import telegram
-from telegram.ext import Dispatcher, CommandHandler
+from telegram.ext import Dispatcher, CommandHandler, MessageHandler
+from telegram.ext.filters import Filters
 
 # linear programming solver
 import pulp
@@ -317,6 +318,7 @@ def milano(bot, update):
 	msg = verb + "milano"
 	bot.send_message(chat_id=update.message.chat_id, text=msg)
 
+
 def murialdo(bot, update):
 	insults = ["Quando Dio diede l'intelligenza all'umanità tu dov'eri? Al cesso!?",
 	           "Sei cosi brutto che chi ti guarda vomita.",
@@ -329,7 +331,15 @@ def murialdo(bot, update):
 	msg = random.choice(insults)
 	bot.send_message(chat_id=update.message.chat_id, text=msg)
 
+
+def unknown(bot, update):
+	update.message.reply_animation("CgADBAADoq0AAhEdZAfaW_NYik5pqAI")
+
+
 # Hook commands to command handlers
+dispatcher.add_handler(MessageHandler(Filters.text, unknown))
+dispatcher.add_handler(MessageHandler(~ Filters.command, unknown))
+dispatcher.add_handler(MessageHandler(Filters.animation, unknown))
 dispatcher.add_handler(CommandHandler("start", start))
 dispatcher.add_handler(CommandHandler("sollecita", sollecita))
 dispatcher.add_handler(CommandHandler("macchina", macchina))
@@ -347,3 +357,4 @@ dispatcher.add_handler(CommandHandler("help", bot_help))
 dispatcher.add_handler(CommandHandler("guest", postoguest))
 dispatcher.add_handler(CommandHandler("murialdo", murialdo))
 dispatcher.add_handler(CommandHandler("reset", reset))
+dispatcher.add_handler(MessageHandler(Filters.command, unknown))
