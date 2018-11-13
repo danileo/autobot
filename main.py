@@ -90,7 +90,7 @@ def get_results(chat_id):
 	available_seats = sum(
 		[(i + 1) * n for i, n in enumerate(num_cars_divided)])
 
-	if num_cars+num_lifts+num_poss_lifts:
+	if num_cars + num_lifts + num_poss_lifts == 0:
 		return "Non sono stati registrati partecipanti."
 
 	if available_seats < num_cars + num_lifts:
@@ -142,7 +142,8 @@ def get_results(chat_id):
 		msg = "Auto necessarie: " + \
 			(", ".join([u['name'] for u in chosen_cars])) + "."
 		msg += "\nTutti hanno il posto in auto: "
-		msg += (", ".join([u['name'] for u in list(set(cars_list)-set(chosen_cars))+poss_lifts_list+lifts_list]))
+		drivers_not_driving = [u for u in cars_list if u not in chosen_cars]
+		msg += (", ".join([u['name'] for u in drivers_not_driving+poss_lifts_list+lifts_list]))
 		msg += "."
 		return msg
 
