@@ -210,12 +210,21 @@ def sollecita(bot, update):
 				 "Te dò un sciafon che te impituro sù pel muro. Che ore sono, <NAME>!?",
 				 "You have the timeliness of a seasick crocodile, <NAME>. Now, given the choice between the two of you, I'd take the seasick crocodile!",
 				 "Gentile <NAME>, MUOVI QUEL CULO! Un abbraccio."]
-	sentence = random.choice(sentences)
+	sentencesTutti = ["VOLETE CHE MUORO!? (di fame)",
+				 "Tic toc, gente, TIC TOC!",
+				 "Das war ein Befehl! Die Abfahrt war ein Befehl! Wer sind Sie, dass Sie es wagen, sich meinen Befehlen zu widersetzen? So weit ist es also gekommen...",
+				 "Ve dò un sciafon che ve impituro sù pel muro. Che ore sono!?",
+				 "You have the timeliness of a seasick crocodile. Now, given the choice between the two of you, I'd take the seasick crocodile!",
+				 "Gentilissimi, MUOVETE QUEL CULO! Un abbraccio."]
 	origmsg = update.message.text.strip()
 	if origmsg.find(" ") > 0:
 		msg = origmsg[origmsg.find(" ") + 1:]
 		msg = msg.strip()
-		sentence = sentence.replace("<NAME>", msg)
+		if msg=="tutti":
+			sentence = random.choice(sentencesTutti)
+		else:
+			sentence = random.choice(sentences)
+			sentence = sentence.replace("<NAME>", msg)
 		bot.send_message(chat_id=update.message.chat_id, text=sentence)
 
 
@@ -337,9 +346,6 @@ def unknown(bot, update):
 
 
 # Hook commands to command handlers
-dispatcher.add_handler(MessageHandler(Filters.text, unknown))
-dispatcher.add_handler(MessageHandler(~ Filters.command, unknown))
-dispatcher.add_handler(MessageHandler(Filters.animation, unknown))
 dispatcher.add_handler(CommandHandler("start", start))
 dispatcher.add_handler(CommandHandler("sollecita", sollecita))
 dispatcher.add_handler(CommandHandler("macchina", macchina))
