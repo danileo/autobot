@@ -167,6 +167,14 @@ def delete_records(chat_id):
 	dsclient.delete_multi(keys)
 
 
+def delete_all_records():
+	query = dsclient.query(kind='Person')
+	query.keys_only()
+	records = query.fetch()
+	keys = [r.key for r in records]
+	dsclient.delete_multi(keys)
+
+
 #############################
 #  CALLBACKS FOR WEBSERVER  #
 #############################
@@ -192,6 +200,12 @@ def set_webhook():
 @app.route('/')
 def index():
 	return '.'
+
+
+@app.route('/deleteprefs')
+def index():
+	delete_all_records()
+	return 'Records deleted.'
 
 
 ###############################
