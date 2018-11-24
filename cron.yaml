@@ -1,4 +1,4 @@
 cron:
 - description: "daily delete preferences job"
   url: /deleteprefs
-  schedule: every 24 hours
+  schedule: every day 00:00
