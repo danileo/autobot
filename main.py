@@ -197,15 +197,15 @@ def set_webhook():
 		return "webhook setup failed"
 
 
+@app.route('/deleteprefs')
+def deleteprefs():
+	delete_all_records()
+	return 'Records deleted.'
+
+
 @app.route('/')
 def index():
 	return '.'
-
-
-@app.route('/deleteprefs')
-def index():
-	delete_all_records()
-	return 'Records deleted.'
 
 
 ###############################
