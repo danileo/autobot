@@ -115,7 +115,7 @@ def get_results(chat_id):
 			(", ".join([u['name'] for u in cars_list])) + "."
 		if people_poss_lifts+lifts_list:
 			msg += "\nPersone che hanno il posto in auto: "
-			msg += (", ".join([u['name'] for u in cars_list+people_poss_lifts+lifts_list]))
+			msg += (", ".join([u['name'] for u in people_poss_lifts+lifts_list]))
 			msg += "."
 		return msg
 
