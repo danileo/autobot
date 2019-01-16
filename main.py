@@ -356,7 +356,8 @@ def murialdo(bot, update):
 
 
 def unknown(bot, update):
-	update.message.reply_animation("CgADBAADoq0AAhEdZAfaW_NYik5pqAI")
+	#update.message.reply_animation("CgADBAADoq0AAhEdZAfaW_NYik5pqAI")
+	update.message.reply_text("???")
 
 
 # Hook commands to command handlers
