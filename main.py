@@ -113,9 +113,10 @@ def get_results(chat_id):
 
 		msg = "Auto necessarie: " + \
 			(", ".join([u['name'] for u in cars_list])) + "."
-		if people_poss_lifts+lifts_list:
-			msg += "\nPersone che hanno il posto in auto: "
-			msg += (", ".join([u['name'] for u in people_poss_lifts+lifts_list]))
+		passengers = people_poss_lifts+lifts_list
+		if passengers:
+			msg += "\n" + str(len(passengers)) + " persone hanno il posto in auto: "
+			msg += (", ".join([u['name'] for u in passengers]))
 			msg += "."
 		return msg
 
@@ -142,9 +143,10 @@ def get_results(chat_id):
 
 		msg = "Auto necessarie: " + \
 			(", ".join([u['name'] for u in chosen_cars])) + "."
-		msg += "\nTutti hanno il posto in auto: "
 		drivers_not_driving = [u for u in cars_list if u not in chosen_cars]
-		msg += (", ".join([u['name'] for u in drivers_not_driving+poss_lifts_list+lifts_list]))
+		passengers = drivers_not_driving+poss_lifts_list+lifts_list
+		msg += "\nTutti hanno il posto in auto (" + str(len(passengers)) + " persone): "
+		msg += (", ".join([u['name'] for u in passengers]))
 		msg += "."
 		return msg
 
