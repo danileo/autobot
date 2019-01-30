@@ -3,6 +3,7 @@
 # python utility modules
 import configparser
 import random
+import time
 
 import sys
 import os
@@ -63,6 +64,7 @@ def put_pref_ds(chat_id, person_id, name, pref, num_seats=5):
 	rec['name'] = name
 	rec['preference'] = pref
 	rec['seats'] = num_seats
+	rec['timestamp'] = int(round(time.time()*1000)) # millisecond precision
 
 	# Saves the entity
 	dsclient.put(rec)
