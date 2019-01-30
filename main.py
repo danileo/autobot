@@ -49,6 +49,7 @@ except google.auth.exceptions.DefaultCredentialsError as exc:
 #  DATASTORE OPERATIONS  #
 ##########################
 
+# Save preferences to datastore
 def put_pref_ds(chat_id, person_id, name, pref, num_seats=5):
 	anc_key = dsclient.key('Chat', chat_id)
 	anc = datastore.Entity(key=anc_key)
@@ -66,26 +67,66 @@ def put_pref_ds(chat_id, person_id, name, pref, num_seats=5):
 	# Saves the entity
 	dsclient.put(rec)
 
-
-def get_results(chat_id):
+# Get car list from datastore
+def get_car_list(chat_id):
 	ancestor = dsclient.key('Chat', chat_id)
 	query = dsclient.query(kind='Person', ancestor=ancestor)
 	query.add_filter('preference', '=', 'CAR')
-	cars_list = list(query.fetch())
+	return list(query.fetch())
+
+# Get list of people requiring a lift from datastore
+def get_lifts_list(chat_id):
+	ancestor = dsclient.key('Chat', chat_id)
+	query = dsclient.query(kind='Person', ancestor=ancestor)
+	query.add_filter('preference', '=', 'LIFT')
+	return list(query.fetch())
+
+# Get list of people possibly requiring a lift
+def get_poss_lifts(chat_id):
+	ancestor = dsclient.key('Chat', chat_id)
+	query = dsclient.query(kind='Person', ancestor=ancestor)
+	query.add_filter('preference', '=', 'POSSIBLY_LIFT')
+	return list(query.fetch())
+
+def get_name(user):
+	user_name = user.first_name
+	if user.last_name is not None:
+		user_name += " " + user.last_name
+	elif user.username is not None:
+		user_name += " " + user.username
+	return user_name
+
+
+def delete_records(chat_id):
+	ancestor = dsclient.key('Chat', chat_id)
+	query = dsclient.query(kind='Person', ancestor=ancestor)
+	query.keys_only()
+	records = query.fetch()
+	keys = [r.key for r in records]
+	dsclient.delete_multi(keys)
+
+
+def delete_all_records():
+	query = dsclient.query(kind='Person')
+	query.keys_only()
+	records = query.fetch()
+	keys = [r.key for r in records]
+	dsclient.delete_multi(keys)
+
+# Helper function to compute a status message
+def compute_status(chat_id):
+	cars_list = get_car_list(chat_id)
 	num_cars = len(cars_list)
+
 	cars_list_divided = [[] for i in range(0, 10)]
 	for car in cars_list:
 		cars_list_divided[car['seats'] - 1].append(car)
 	num_cars_divided = [len(c) for c in cars_list_divided]
 
-	query = dsclient.query(kind='Person', ancestor=ancestor)
-	query.add_filter('preference', '=', 'LIFT')
-	lifts_list = list(query.fetch())
+	lifts_list = get_lifts_list(chat_id)
 	num_lifts = len(lifts_list)
 
-	query = dsclient.query(kind='Person', ancestor=ancestor)
-	query.add_filter('preference', '=', 'POSSIBLY_LIFT')
-	poss_lifts_list = list(query.fetch())
+	poss_lifts_list = get_poss_lifts(chat_id)
 	num_poss_lifts = len(poss_lifts_list)
 
 	available_seats = sum(
@@ -149,33 +190,6 @@ def get_results(chat_id):
 		msg += (", ".join([u['name'] for u in passengers]))
 		msg += "."
 		return msg
-
-
-def get_name(user):
-	user_name = user.first_name
-	if user.last_name is not None:
-		user_name += " " + user.last_name
-	elif user.username is not None:
-		user_name += " " + user.username
-	return user_name
-
-
-def delete_records(chat_id):
-	ancestor = dsclient.key('Chat', chat_id)
-	query = dsclient.query(kind='Person', ancestor=ancestor)
-	query.keys_only()
-	records = query.fetch()
-	keys = [r.key for r in records]
-	dsclient.delete_multi(keys)
-
-
-def delete_all_records():
-	query = dsclient.query(kind='Person')
-	query.keys_only()
-	records = query.fetch()
-	keys = [r.key for r in records]
-	dsclient.delete_multi(keys)
-
 
 #############################
 #  CALLBACKS FOR WEBSERVER  #
@@ -308,7 +322,7 @@ def bicicletta(bot, update):
 
 def status(bot, update):
 	chat_id = update.message.chat_id
-	bot.send_message(chat_id=chat_id, text=get_results(chat_id))
+	bot.send_message(chat_id=chat_id, text=compute_status(chat_id))
 
 
 def reset(bot, update):
