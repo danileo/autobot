@@ -351,7 +351,10 @@ def murialdo(bot, update):
 	           "No.",
 	           "Non capisco se sei cretino di tuo oppure hai studiato per esserlo.",
 	           "Your are not allowed to do that. This incident will be reported.",
-	           "Hold it up to the light --- not a brain in sight!"]
+	           "Hold it up to the light --- not a brain in sight!",
+	           "Take a stress pill and think things over.",
+	           "Thou Foul Lump Of Deformity! (Shakespeare, Richard III)",
+	           "Davvero? Il tuo QI è circa quello della temperatura ambiente." ]
 
 	msg = random.choice(insults)
 	bot.send_message(chat_id=update.message.chat_id, text=msg)
