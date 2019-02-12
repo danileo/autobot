@@ -90,6 +90,13 @@ def get_poss_lifts(chat_id):
 	query.add_filter('preference', '=', 'POSSIBLY_LIFT')
 	return list(query.fetch())
 
+# Get bike list from datastore
+def get_bike_list(chat_id):
+	ancestor = dsclient.key('Chat', chat_id)
+	query = dsclient.query(kind='Person', ancestor=ancestor)
+	query.add_filter('preference', '=', 'BIKE')
+	return list(query.fetch())
+
 def get_name(user):
 	user_name = user.first_name
 	if user.last_name is not None:
@@ -160,6 +167,10 @@ def compute_status(chat_id):
 		if passengers:
 			msg += "\n" + str(len(passengers)) + " persone hanno il posto in auto: "
 			msg += (", ".join([u['name'] for u in passengers]))
+			msg += "."
+			cyclists = [u['name'] for u in people_poss_lifts if u not in passengers]+get_bike_list(chat_id)
+			msg += "\n" + str(len(cyclists)) + " persone vanno in bicicletta: "
+			msg += (", ".join(cyclists))
 			msg += "."
 		return msg
 
