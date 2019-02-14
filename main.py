@@ -97,6 +97,11 @@ def get_bike_list(chat_id):
 	query.add_filter('preference', '=', 'BIKE')
 	return list(query.fetch())
 
+# Remove person from datastore
+def delete_person(chat_id, person_id, name):
+	rec_key = dsclient.key('Chat', chat_id, 'Person', person_id)
+	dsclient.delete(rec_key)
+
 def get_name(user):
 	user_name = user.first_name
 	if user.last_name is not None:
@@ -105,7 +110,6 @@ def get_name(user):
 		user_name += " " + user.username
 	return user_name
 
-
 def delete_records(chat_id):
 	ancestor = dsclient.key('Chat', chat_id)
 	query = dsclient.query(kind='Person', ancestor=ancestor)
@@ -113,7 +117,6 @@ def delete_records(chat_id):
 	records = query.fetch()
 	keys = [r.key for r in records]
 	dsclient.delete_multi(keys)
-
 
 def delete_all_records():
 	query = dsclient.query(kind='Person')
@@ -333,6 +336,16 @@ def bicicletta(bot, update):
 	bot.send_message(chat_id=chat_id, text=msg)
 
 
+def salto(bot, update):
+	user = update.message.from_user
+	user_name = get_name(user)
+	chat_id = update.message.chat_id
+	
+	delete_person(chat_id, user.id, user_name)
+	msg = (user_name + " fa l'asociale.")
+	bot.send_message(chat_id=chat_id, text=msg)
+
+
 def status(bot, update):
 	chat_id = update.message.chat_id
 	bot.send_message(chat_id=chat_id, text=compute_status(chat_id))
@@ -348,8 +361,9 @@ def bot_help(bot, update):
 	txt = "/auto o /macchina per indicare che si ha l'auto.\n"
 	txt += "/posto per prenotare un posto.\n"
 	txt += "/biciomacchina (o qualsiasi delle quattro combinazioni tra bici e (auto OR macchina) intervallate dalla lettera \"o\") per indicare che si preferirebbe un passaggio in auto ma si ha la bicicletta.\n"
-	txt += "/bici per indicare che si va in bicicletta."
-	txt += "/guest NomeGuest per aggiungere un ospite che vuole andare in macchina"
+	txt += "/bici per indicare che si va in bicicletta.\n"
+	txt += "/salto per rimuoversi dalla lista.\n"
+	txt += "/guest NomeGuest per aggiungere un ospite che vuole andare in macchina."
 
 	bot.send_message(chat_id=update.message.chat_id, text=txt)
 
@@ -404,6 +418,7 @@ dispatcher.add_handler(CommandHandler("autoobici", pref_posto))
 dispatcher.add_handler(CommandHandler("bicioauto", pref_posto))
 dispatcher.add_handler(CommandHandler("bici", bicicletta))
 dispatcher.add_handler(CommandHandler("bicicletta", bicicletta))
+dispatcher.add_handler(CommandHandler("salto", salto))
 dispatcher.add_handler(CommandHandler("status", status))
 dispatcher.add_handler(CommandHandler("milano", milano))
 dispatcher.add_handler(CommandHandler("help", bot_help))
