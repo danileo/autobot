@@ -125,6 +125,9 @@ def delete_all_records():
 	keys = [r.key for r in records]
 	dsclient.delete_multi(keys)
 
+def get_names_list(l):
+	return [u['name'] for u in l]
+
 # Helper function to compute a status message
 def compute_status(chat_id):
 	cars_list = get_car_list(chat_id)
@@ -171,7 +174,7 @@ def compute_status(chat_id):
 			msg += "\n" + str(len(passengers)) + " persone hanno il posto in auto: "
 			msg += (", ".join([u['name'] for u in passengers]))
 			msg += "."
-			cyclists = [u['name'] for u in people_poss_lifts if u not in passengers]+get_bike_list(chat_id)
+			cyclists = [u['name'] for u in poss_lifts_list if u not in passengers]+get_names_list(get_bike_list(chat_id))
 			msg += "\n" + str(len(cyclists)) + " persone vanno in bicicletta: "
 			msg += (", ".join(cyclists))
 			msg += "."
@@ -426,3 +429,5 @@ dispatcher.add_handler(CommandHandler("guest", postoguest))
 dispatcher.add_handler(CommandHandler("murialdo", murialdo))
 dispatcher.add_handler(CommandHandler("reset", reset))
 dispatcher.add_handler(MessageHandler(Filters.command, unknown))
+
+print(compute_status(-1001323500061))
