@@ -36,8 +36,8 @@ HOOK_ADDRESS = config['DEFAULT']['hook_address']
 BOT_URL = config['DEFAULT']['bot_url']
 
 # Telegram init
-bot = telegram.Bot(token=TELEGRAM_TOKEN)
-dispatcher = Dispatcher(bot, None, workers=0)
+telegrambot = telegram.Bot(token=TELEGRAM_TOKEN)
+dispatcher = Dispatcher(telegrambot, None, workers=0)
 
 # google datastore init
 try:
@@ -101,7 +101,7 @@ def get_bike_list(chat_id):
 	return list(query.fetch())
 
 # Remove person from datastore
-def delete_person(chat_id, person_id, name):
+def delete_person(chat_id, person_id):
 	rec_key = dsclient.key('Chat', chat_id, 'Person', person_id)
 	dsclient.delete(rec_key)
 
@@ -256,14 +256,14 @@ def compute_status(chat_id):
 def webhook_handler():
 	if request.method == "POST":
 		# retrieve the message in JSON and then transform it to Telegram object
-		update = telegram.Update.de_json(request.get_json(force=True), bot)
+		update = telegram.Update.de_json(request.get_json(force=True), telegrambot)
 		dispatcher.process_update(update)
 	return 'ok'
 
 
 @app.route('/set_webhook', methods=['GET', 'POST'])
 def set_webhook():
-	s = bot.setWebhook(BOT_URL + HOOK_ADDRESS)
+	s = telegrambot.setWebhook(BOT_URL + HOOK_ADDRESS)
 	if s:
 		return "webhook setup ok"
 	else:
@@ -307,7 +307,7 @@ def sollecita(bot, update):
 	if origmsg.find(" ") > 0:
 		msg = origmsg[origmsg.find(" ") + 1:]
 		msg = msg.strip()
-		if msg=="tutti":
+		if msg == "tutti":
 			sentence = random.choice(sentencesTutti)
 		else:
 			sentence = random.choice(sentences)
@@ -381,8 +381,8 @@ def salto(bot, update):
 	user = update.message.from_user
 	user_name = get_name(user)
 	chat_id = update.message.chat_id
-	
-	delete_person(chat_id, user.id, user_name)
+
+	delete_person(chat_id, user.id)
 	msg = (user_name + " fa l'asociale.")
 	bot.send_message(chat_id=chat_id, text=msg)
 
