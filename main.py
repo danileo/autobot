@@ -157,7 +157,8 @@ def compute_status(chat_id):
 				str(missing_seats) + " persone a piedi."
 		else:
 			msg = "Non ci sono abbastanza auto: rimane una persona a piedi."
-		return msg
+		cyclists = get_names_list(poss_lifts_list) + \
+			get_names_list(get_bike_list(chat_id))
 
 	elif available_seats <= num_cars + num_lifts + num_poss_lifts:
 		num_seats_left = available_seats - num_cars - num_lifts
@@ -167,18 +168,17 @@ def compute_status(chat_id):
 		else:
 			people_poss_lifts = random.sample(poss_lifts_list, num_seats_left)
 
-		msg = "Auto necessarie: " + \
-			(", ".join([u['name'] for u in cars_list])) + "."
-		passengers = people_poss_lifts+lifts_list
-		if passengers:
-			msg += "\n" + str(len(passengers)) + " persone hanno il posto in auto: "
-			msg += (", ".join([u['name'] for u in passengers]))
-			msg += "."
-			cyclists = [u['name'] for u in poss_lifts_list if u not in passengers]+get_names_list(get_bike_list(chat_id))
-			msg += "\n" + str(len(cyclists)) + " persone vanno in bicicletta: "
-			msg += (", ".join(cyclists))
-			msg += "."
-		return msg
+		msg = ""
+		if cars_list:
+			msg = "Auto necessarie: " + \
+				(", ".join([u['name'] for u in cars_list])) + "."
+			passengers = people_poss_lifts+lifts_list
+			if passengers:
+				msg += "\n" + str(len(passengers)) + " persone hanno il posto in auto: "
+				msg += (", ".join([u['name'] for u in passengers]))
+				msg += "."
+		cyclists = [u['name'] for u in poss_lifts_list if u not in passengers] + \
+			get_names_list(get_bike_list(chat_id))
 
 	else:
 		prob = pulp.LpProblem("", pulp.LpMinimize)
@@ -208,7 +208,15 @@ def compute_status(chat_id):
 		msg += "\nTutti hanno il posto in auto (" + str(len(passengers)) + " persone): "
 		msg += (", ".join([u['name'] for u in passengers]))
 		msg += "."
-		return msg
+		cyclists = get_names_list(poss_lifts_list) + \
+			get_names_list(get_bike_list(chat_id))
+
+	if msg:
+		msg += "\n"
+	msg += str(len(cyclists)) + " persone vanno in bicicletta: "
+	msg += (", ".join(cyclists))
+	msg += "."
+	return msg
 
 #############################
 #  CALLBACKS FOR WEBSERVER  #
