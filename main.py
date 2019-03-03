@@ -174,11 +174,12 @@ def compute_status(chat_id):
 
 	poss_lifts_list = get_poss_lifts(chat_id)
 	num_poss_lifts = len(poss_lifts_list)
+	num_bikes = len(get_bike_list(chat_id))
 
 	available_seats = sum(
 		[(i + 1) * n for i, n in enumerate(num_cars_divided)])
 
-	if num_cars + num_lifts + num_poss_lifts == 0:
+	if num_bikes + num_cars + num_lifts + num_poss_lifts == 0:
 		return "Non sono stati registrati partecipanti."
 
 	if available_seats < num_cars + num_lifts:
@@ -200,6 +201,7 @@ def compute_status(chat_id):
 			people_poss_lifts = random.sample(poss_lifts_list, num_seats_left)
 
 		msg = ""
+		passengers = []
 		if cars_list:
 			msg = "Auto necessarie: " + \
 				(", ".join([u['name'] for u in cars_list])) + "."
@@ -242,11 +244,12 @@ def compute_status(chat_id):
 		cyclists = get_names_list(poss_lifts_list) + \
 			get_names_list(get_bike_list(chat_id))
 
-	if msg:
-		msg += "\n"
-	msg += str(len(cyclists)) + " persone vanno in bicicletta: "
-	msg += (", ".join(cyclists))
-	msg += "."
+	if cyclists:
+		if msg:
+			msg += "\n"
+		msg += str(len(cyclists)) + " persone vanno in bicicletta: "
+		msg += (", ".join(cyclists))
+		msg += "."
 
 	save_status(chat_id, msg)
 	return msg
