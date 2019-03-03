@@ -449,23 +449,38 @@ def unknown(bot, update):
 
 # Hook commands to command handlers
 dispatcher.add_handler(CommandHandler("start", start))
+
 dispatcher.add_handler(CommandHandler("sollecita", sollecita))
+
 dispatcher.add_handler(CommandHandler("macchina", macchina))
 dispatcher.add_handler(CommandHandler("auto", macchina))
+
 dispatcher.add_handler(CommandHandler("posto", posto))
+
 dispatcher.add_handler(CommandHandler("macchinaobici", pref_posto))
 dispatcher.add_handler(CommandHandler("biciomacchina", pref_posto))
 dispatcher.add_handler(CommandHandler("autoobici", pref_posto))
 dispatcher.add_handler(CommandHandler("bicioauto", pref_posto))
+
 dispatcher.add_handler(CommandHandler("bici", bicicletta))
 dispatcher.add_handler(CommandHandler("bicicletta", bicicletta))
+
 dispatcher.add_handler(CommandHandler("salto", salto))
+dispatcher.add_handler(CommandHandler("pacco", salto))
+dispatcher.add_handler(CommandHandler("icarus", salto))
+
 dispatcher.add_handler(CommandHandler("status", status))
+
 dispatcher.add_handler(CommandHandler("milano", milano))
+
 dispatcher.add_handler(CommandHandler("help", bot_help))
+
 dispatcher.add_handler(CommandHandler("guest", postoguest))
+
 dispatcher.add_handler(CommandHandler("murialdo", murialdo))
+
 dispatcher.add_handler(CommandHandler("reset", reset))
+
 dispatcher.add_handler(MessageHandler(Filters.command, unknown))
 
 print(compute_status(-1001323500061))
