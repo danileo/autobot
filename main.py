@@ -436,7 +436,7 @@ def murialdo(bot, update):
 	           "Hold it up to the light --- not a brain in sight!",
 	           "Take a stress pill and think things over.",
 	           "Thou Foul Lump Of Deformity! (Shakespeare, Richard III)",
-	           "Davvero? Il tuo QI è circa quello della temperatura ambiente." ]
+	           "Davvero? Il tuo QI è circa quello della temperatura ambiente."]
 
 	msg = random.choice(insults)
 	bot.send_message(chat_id=update.message.chat_id, text=msg)
@@ -482,5 +482,3 @@ dispatcher.add_handler(CommandHandler("murialdo", murialdo))
 dispatcher.add_handler(CommandHandler("reset", reset))
 
 dispatcher.add_handler(MessageHandler(Filters.command, unknown))
-
-print(compute_status(-1001323500061))
