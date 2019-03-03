@@ -50,11 +50,17 @@ except google.auth.exceptions.DefaultCredentialsError as exc:
 #  DATASTORE OPERATIONS  #
 ##########################
 
+def get_or_create_chat_entity(chat_id):
+	chat_key = dsclient.key('Chat', chat_id)
+	chat_entity = dsclient.get(chat_key)
+	if not chat_entity:
+		chat_entity = datastore.Entity(key=chat_key)
+		dsclient.put(chat_entity)
+	return chat_entity
+
 # Save preferences to datastore
 def put_pref_ds(chat_id, person_id, name, pref, num_seats=5):
-	anc_key = dsclient.key('Chat', chat_id)
-	anc = datastore.Entity(key=anc_key)
-	dsclient.put(anc)
+	get_or_create_chat_entity(chat_id)
 
 	# The Cloud Datastore key for the new entity
 	rec_key = dsclient.key('Chat', chat_id, 'Person', person_id)
@@ -129,20 +135,17 @@ def delete_all_records():
 	dsclient.delete_multi(keys)
 
 def remove_status(chat_id):
-	chat_key = dsclient.key('Chat', chat_id)
-	chat_entity = datastore.Entity(key=chat_key)
+	chat_entity = get_or_create_chat_entity(chat_id)
 	chat_entity['status_msg'] = ""
 	dsclient.put(chat_entity)
 
 def save_status(chat_id, msg):
-	chat_key = dsclient.key('Chat', chat_id)
-	chat_entity = datastore.Entity(key=chat_key)
+	chat_entity = get_or_create_chat_entity(chat_id)
 	chat_entity['status_msg'] = msg
 	dsclient.put(chat_entity)
 
 def get_status(chat_id):
-	chat_key = dsclient.key('Chat', chat_id)
-	chat_entity = datastore.get(chat_key)
+	chat_entity = get_or_create_chat_entity(chat_id)
 	if 'status_msg' in chat_entity:
 		return chat_entity['status_msg']
 	return ""
@@ -272,7 +275,11 @@ def set_webhook():
 
 @app.route('/deleteprefs')
 def deleteprefs():
-	delete_all_records()
+	q = dsclient.query(kind='Chat')
+	res = q.fetch()
+	chats_to_purge = [el.id for el in res if 'persistent' not in el or not el['persistent']]
+	for chat_id in chats_to_purge:
+		delete_records(chat_id)
 	return 'Records deleted.'
 
 
