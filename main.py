@@ -69,6 +69,9 @@ def put_pref_ds(chat_id, person_id, name, pref, num_seats=5):
 	# Saves the entity
 	dsclient.put(rec)
 
+	# Delete the outdated status
+	remove_status(chat_id)
+
 # Get car list from datastore
 def get_car_list(chat_id):
 	ancestor = dsclient.key('Chat', chat_id)
@@ -125,11 +128,36 @@ def delete_all_records():
 	keys = [r.key for r in records]
 	dsclient.delete_multi(keys)
 
+def remove_status(chat_id):
+	chat_key = dsclient.key('Chat', chat_id)
+	chat_entity = datastore.Entity(key=chat_key)
+	chat_entity['status_msg'] = ""
+	dsclient.put(chat_entity)
+
+def save_status(chat_id, msg):
+	chat_key = dsclient.key('Chat', chat_id)
+	chat_entity = datastore.Entity(key=chat_key)
+	chat_entity['status_msg'] = msg
+	dsclient.put(chat_entity)
+
+def get_status(chat_id):
+	chat_key = dsclient.key('Chat', chat_id)
+	chat_entity = datastore.get(chat_key)
+	if 'status_msg' in chat_entity:
+		return chat_entity['status_msg']
+	return ""
+
 def get_names_list(l):
 	return [u['name'] for u in l]
 
 # Helper function to compute a status message
 def compute_status(chat_id):
+
+	# check if a status is already computed
+	current_status = get_status(chat_id)
+	if current_status:
+		return current_status
+
 	cars_list = get_car_list(chat_id)
 	num_cars = len(cars_list)
 
@@ -216,6 +244,8 @@ def compute_status(chat_id):
 	msg += str(len(cyclists)) + " persone vanno in bicicletta: "
 	msg += (", ".join(cyclists))
 	msg += "."
+
+	save_status(chat_id, msg)
 	return msg
 
 #############################
