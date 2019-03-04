@@ -175,6 +175,13 @@ def compute_status(chat_id):
 	poss_lifts_list = get_poss_lifts(chat_id)
 	num_poss_lifts = len(poss_lifts_list)
 	num_bikes = len(get_bike_list(chat_id))
+	rawseed = str.join(';',
+		['C:'] + sorted(get_names_list(cars_list)) +
+		['L:'] + sorted(get_names_list(lifts_list)) +
+		['P:'] + sorted(get_names_list(poss_lifts_list)))
+	seed = 5381
+	for c in rawseed:
+		seed = ((seed * 33) & 4294967295) ^ ord(c)
 
 	available_seats = sum(
 		[(i + 1) * n for i, n in enumerate(num_cars_divided)])
@@ -198,7 +205,10 @@ def compute_status(chat_id):
 		if num_seats_left >= num_poss_lifts:
 			people_poss_lifts = poss_lifts_list
 		else:
+			randstate = random.getstate()
+			random.seed(seed)
 			people_poss_lifts = random.sample(poss_lifts_list, num_seats_left)
+			random.setstate(randstate)
 
 		msg = ""
 		passengers = []
@@ -229,10 +239,13 @@ def compute_status(chat_id):
 		prob.solve()
 		num_cars_needed = [round(v.varValue) for v in prob.variables()]
 
+		randstate = random.getstate()
+		random.seed(seed)
 		chosen_cars = []
 		for i in range(0, len(num_cars_needed)):
 			chosen_cars.extend(random.sample(
 				cars_list_divided[i], num_cars_needed[i]))
+		random.setstate(randstate)
 
 		msg = "Auto necessarie: " + \
 			(", ".join([u['name'] for u in chosen_cars])) + "."
