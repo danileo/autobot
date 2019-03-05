@@ -127,6 +127,7 @@ def delete_records(chat_id):
 
 	chat_entity = get_or_create_chat_entity(chat_id)
 	chat_entity['last_reset'] = math.floor(time.time())
+	dsclient.put(chat_entity)
 
 def get_names_list(l):
 	return [u['name'] for u in l]
@@ -155,6 +156,9 @@ def compute_status(chat_id):
 	seed = 5381
 	for c in rawseed:
 		seed = ((seed * 33) & 4294967295) ^ ord(c)
+	chat_entity = get_or_create_chat_entity(chat_id)
+	if 'last_reset' in chat_entity:
+		seed = seed ^ chat_entity['last_reset']
 
 	available_seats = sum(
 		[(i + 1) * n for i, n in enumerate(num_cars_divided)])
