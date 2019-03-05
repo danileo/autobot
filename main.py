@@ -4,6 +4,7 @@
 import configparser
 import random
 import time
+import math
 
 import sys
 import os
@@ -124,12 +125,8 @@ def delete_records(chat_id):
 	keys = [r.key for r in records]
 	dsclient.delete_multi(keys)
 
-def delete_all_records():
-	query = dsclient.query(kind='Person')
-	query.keys_only()
-	records = query.fetch()
-	keys = [r.key for r in records]
-	dsclient.delete_multi(keys)
+	chat_entity = get_or_create_chat_entity(chat_id)
+	chat_entity['last_reset'] = math.floor(time.time())
 
 def get_names_list(l):
 	return [u['name'] for u in l]
@@ -241,6 +238,7 @@ def compute_status(chat_id):
 		msg += "."
 
 	return msg
+
 
 #############################
 #  CALLBACKS FOR WEBSERVER  #
@@ -396,13 +394,30 @@ def reset(bot, update):
 	bot.send_message(chat_id=chat_id, text="Preferenze cancellate!")
 
 
+def enable_reset(bot, update):
+	chat_id = update.message.chat_id
+	chat = get_or_create_chat_entity(chat_id)
+	chat['persistent'] = False
+	dsclient.put(chat)
+	bot.send_message(chat_id=chat_id, text="La cancellazione periodica delle preferenze è stata abilitata.")
+
+
+def disable_reset(bot, update):
+	chat_id = update.message.chat_id
+	chat = get_or_create_chat_entity(chat_id)
+	chat['persistent'] = True
+	dsclient.put(chat)
+	bot.send_message(chat_id=chat_id, text="La cancellazione periodica delle preferenze è stata disabilitata.")
+
+
 def bot_help(bot, update):
 	txt = "/auto o /macchina per indicare che si ha l'auto.\n"
 	txt += "/posto per prenotare un posto.\n"
 	txt += "/biciomacchina (o qualsiasi delle quattro combinazioni tra bici e (auto OR macchina) intervallate dalla lettera \"o\") per indicare che si preferirebbe un passaggio in auto ma si ha la bicicletta.\n"
 	txt += "/bici per indicare che si va in bicicletta.\n"
 	txt += "/salto per rimuoversi dalla lista.\n"
-	txt += "/guest NomeGuest per aggiungere un ospite che vuole andare in macchina."
+	txt += "/guest NomeGuest per aggiungere un ospite che vuole andare in macchina.\n"
+	txt += "/reseton e /resetoff per abilitare/disabilitare il reset periodico delle preferenze."
 
 	bot.send_message(chat_id=update.message.chat_id, text=txt)
 
@@ -478,5 +493,7 @@ dispatcher.add_handler(CommandHandler("guest", postoguest))
 dispatcher.add_handler(CommandHandler("murialdo", murialdo))
 
 dispatcher.add_handler(CommandHandler("reset", reset))
+dispatcher.add_handler(CommandHandler("reseton", enable_reset))
+dispatcher.add_handler(CommandHandler("resetoff", disable_reset))
 
 dispatcher.add_handler(MessageHandler(Filters.command, unknown))
