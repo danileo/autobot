@@ -148,7 +148,10 @@ def compute_status(chat_id):
 
 	poss_lifts_list = get_poss_lifts(chat_id)
 	num_poss_lifts = len(poss_lifts_list)
-	num_bikes = len(get_bike_list(chat_id))
+
+	bikes_list = get_bike_list(chat_id)
+	num_bikes = len(bikes_list)
+
 	rawseed = str.join(';',
 		['C:'] + sorted(get_names_list(cars_list)) +
 		['L:'] + sorted(get_names_list(lifts_list)) +
@@ -174,7 +177,7 @@ def compute_status(chat_id):
 		else:
 			msg = "Non ci sono abbastanza auto: rimane una persona a piedi."
 		cyclists = get_names_list(poss_lifts_list) + \
-			get_names_list(get_bike_list(chat_id))
+			get_names_list(bikes_list)
 
 	elif available_seats <= num_cars + num_lifts + num_poss_lifts:
 		num_seats_left = available_seats - num_cars - num_lifts
@@ -198,7 +201,7 @@ def compute_status(chat_id):
 				msg += (", ".join([u['name'] for u in passengers]))
 				msg += "."
 		cyclists = [u['name'] for u in poss_lifts_list if u not in passengers] + \
-			get_names_list(get_bike_list(chat_id))
+			get_names_list(bikes_list)
 
 	else:
 		prob = pulp.LpProblem("", pulp.LpMinimize)
@@ -231,8 +234,7 @@ def compute_status(chat_id):
 		msg += "\nTutti hanno il posto in auto (" + str(len(passengers)) + " persone): "
 		msg += (", ".join([u['name'] for u in passengers]))
 		msg += "."
-		cyclists = get_names_list(poss_lifts_list) + \
-			get_names_list(get_bike_list(chat_id))
+		cyclists = get_names_list(bikes_list)
 
 	if cyclists:
 		if msg:
